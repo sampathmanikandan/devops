@@ -1,34 +1,44 @@
 trigger:
   branches:
     include:
-      - main
+      - main  # Trigger pipeline on push to the main branch
 
 pool:
-  vmImage: 'ubuntu-latest'  # You can use other VM images like 'windows-latest' if preferred
+  vmImage: 'ubuntu-latest'  # Use the latest Ubuntu image as the build agent
 
 variables:
-  javaVersion: '11'  # Specify the Java version you need
+  javaVersion: '11'  # Java version to use
+  mavenPomFile: 'pom.xml'  # Path to your Maven POM file
+  mavenOptions: '-DskipTests'  # Option to skip tests (optional)
 
 steps:
+# Step 1: Checkout the code
 - task: Checkout@1
   inputs:
-    clean: true  # Clean checkout of your repository
+    clean: true  # Clean checkout ensures we get the latest code
 
-# Manually Install JDK (Java 11 in this case)
+# Step 2: Install JDK (Java 11) if it's not already installed by default
 - script: |
     sudo apt-get update
-    sudo apt-get install openjdk-11-jdk -y  # Install JDK 11 on Ubuntu-based agents
-    java -version  # Check the Java version to verify installation
+    sudo apt-get install openjdk-11-jdk -y  # Install OpenJDK 11
+    java -version  # Verify Java version to ensure it's installed correctly
   displayName: 'Install JDK 11'
 
-- task: Maven@3  # If you're using Maven to build
+# Step 3: Run Maven to build the project
+- task: Maven@3
   inputs:
-    mavenPomFile: 'pom.xml'
-    options: '-DskipTests'
-    goals: 'clean install'
+    mavenPomFile: '$(mavenPomFile)'  # Ensure the correct path to the POM file
+    options: '$(mavenOptions)'  # Option to skip tests or add additional Maven options
+    goals: 'clean install'  # Goals to clean and install the project
+    javaHomeOption: 'JDKVersion'  # Use JDK from the environment
+    jdkVersionOption: '1.11'  # Specify the version of JDK (Java 11)
+    jdkArchitecture: 'x64'  # Ensure the architecture is x64
+    publishJUnitResults: true  # Publish test results (if any)
+    testResultsFiles: '**/TEST-*.xml'  # Path to test result files (if any)
 
+# Step 4: Publish the build artifacts
 - task: PublishBuildArtifacts@1
   inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'  # Path to the build output
+    ArtifactName: 'drop'  # Name for the artifact
+    publishLocation: 'Container'  # Store the artifact in a container
