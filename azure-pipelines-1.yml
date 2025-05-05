@@ -1,0 +1,37 @@
+trigger:
+  branches:
+    include:
+      - main  # Trigger pipeline on push to the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Use a hosted Ubuntu agent
+
+variables:
+  javaVersion: '11'  # Define the Java version
+
+steps:
+- task: UseJavaToolInstaller@1
+  inputs:
+    versionSpec: '$(javaVersion)'  # Use JDK 11
+    addToPath: true
+
+- task: Checkout@1
+  inputs:
+    clean: true  # Clean checkout of the code
+
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'pom.xml'  # Path to your Maven POM file
+    options: '-DskipTests'  # Optional: Skip tests during build
+    goals: 'clean install'  # Define goals to run during the build
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.11'  # Use JDK 11
+    jdkArchitecture: 'x64'  # Define the architecture of JDK
+    publishJUnitResults: true  # Optionally, publish test results
+    testResultsFiles: '**/TEST-*.xml'  # Path to test result files
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'  # Path to the build output
+    ArtifactName: 'drop'  # Name of the artifact
+    publishLocation: 'Container'
